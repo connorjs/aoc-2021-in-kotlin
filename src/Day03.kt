@@ -1,76 +1,54 @@
+/** https://adventofcode.com/2021/day/3 */
 fun main() {
 
-    fun x(input: List<CharArray>, index: Int): List<Int> {
-        return input.map { it[index].digitToInt() }
-    }
+    /** Get values for the current bit position (column). */
+    fun currentBitPositionValues(input: List<List<Int>>, index: Int) = input.map { it[index] }
 
-    fun y(input: MutableList<List<Int>>, index: Int): List<Int> {
-        return input.map { it[index] }
-    }
-
-    fun part1(input: List<CharArray>): Int {
-        val num = input.size;
-        val gammaBin = CharArray(input[0].size)
-        val gammaEps = CharArray(input[0].size)
-        for (i in 0 until input[0].size) {
-            val sum = x(input, i).sum()
-            gammaBin[i] = if (sum > num / 2) '1' else '0'
-            gammaEps[i] = if (sum > num / 2) '0' else '1'
+    fun part1(input: List<List<Int>>): Int {
+        // Note: eps is gamma XOR-ed with 1s, so "have fun" and use that (less space)
+        val numValues = input.size;
+        val gammaBinary = CharArray(input[0].size)
+        for (bitPosition in 0 until input[0].size) {
+            val sum = currentBitPositionValues(input, bitPosition).sum()
+            gammaBinary[bitPosition] = if (sum > numValues / 2) '1' else '0'
+            // > or >= here (unspecified for part 1)
         }
-        val gamma = String(gammaBin).toInt(2)
-        val eps = String(gammaEps).toInt(2)
+        val gamma = String(gammaBinary).toInt(2)
+        val eps = gamma xor ((1 shl input[0].size) - 1)
         return gamma * eps
     }
 
-    fun part2(input: List<List<Int>>): Int {
-        val oxygen = input.toMutableList()
-        var oxygenBin: List<Int>? = null
-        for (i in 0 until input[0].size) {
-            if (oxygen.size == 1) {
-                oxygenBin = oxygen[0]
+    fun part2Helper(input: List<List<Int>>, chooseMostCommon: Boolean): Int {
+        val values = input.toMutableList()
+        for (bitPosition in 0 until input[0].size) {
+            if (values.size == 1) {
+                break
             }
-            val sum = y(oxygen, i).sum()
-            val oxygenToKeep = if (sum >= oxygen.size / 2.0) 1 else 0
-            for (j in oxygen.size - 1 downTo 0) {
-                if (oxygen[j][i] != oxygenToKeep) {
-                    oxygen.removeAt(j)
+            val sum = currentBitPositionValues(values, bitPosition).sum()
+            // Handle oxygen vs. CO2 with `chooseMostCommon` variable via `xor` (ugly boolean but oh well)
+            val bitToKeep = if (chooseMostCommon xor (sum >= values.size / 2.0)) 0 else 1
+            for (lineIndex in values.size - 1 downTo 0) {
+                if (values[lineIndex][bitPosition] != bitToKeep) {
+                    values.removeAt(lineIndex)
                 }
             }
         }
-        if (oxygenBin == null) {
-            oxygenBin = oxygen[0];
-        }
-        val ox = oxygenBin.joinToString("").toInt(2)
-
-        val co2 = input.toMutableList()
-        var co2Bin: List<Int>? = null
-        for (i in 0 until input[0].size) {
-            if (co2.size == 1) {
-                co2Bin = co2[0]
-            }
-            val sum = y(co2, i).sum()
-            val co2ToKeep = if (sum >= co2.size / 2.0) 0 else 1
-            for (j in co2.size - 1 downTo 0) {
-                if (co2[j][i] != co2ToKeep) {
-                    co2.removeAt(j)
-                }
-            }
-        }
-        if (co2Bin == null) {
-            co2Bin = co2[0];
-        }
-        val co = co2Bin.joinToString("").toInt(2)
-
-        return ox * co;
+        return values[0].joinToString("").toInt(2)
     }
 
-    val testInput = readInput("Day03_test").map { it.toCharArray() }
-    val testInput2 = readInput("Day03_test").map { it.toCharArray() }.map { it.map { c -> c.digitToInt() } }
-    check(part1(testInput) == 198)
-    check(part2(testInput2) == 230)
+    fun part2(input: List<List<Int>>): Int {
+        val oxygenGeneratorRating = part2Helper(input, true)
+        val co2ScrubberRating = part2Helper(input, false)
+        return oxygenGeneratorRating * co2ScrubberRating;
+    }
 
-    val input = readInput("Day03").map { it.toCharArray() }
-    val input2 = readInput("Day03").map { it.toCharArray() }.map { it.map { c -> c.digitToInt() } }
+    fun convertInput(input: List<String>) = input.map { it.toCharArray() }.map { it.map { c -> c.digitToInt() } }
+
+    val testInput = convertInput(readInput("Day03_test"))
+    check(part1(testInput) == 198)
+    check(part2(testInput) == 230)
+
+    val input = convertInput(readInput("Day03"))
     check(part1(input) == 852500)
-    check(part2(input2) == 1007985)
+    check(part2(input) == 1007985)
 }
